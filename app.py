@@ -8,57 +8,55 @@ st.set_page_config(page_title="MTS Pro Final", layout="wide", initial_sidebar_st
 
 # [핵심] 스크롤 완전 박멸 및 UI 고정 CSS
 # [핵심] 스크롤 완전 박멸 및 UI 고정 CSS 수정본
+# [핵심] 가로모드 시 차트 높이 자동 축소 및 스크롤 박멸 CSS
 st.markdown("""
     <style>
-    /* 1. 하단 푸터 숨김 및 상단 헤더 투명화 (사이드바 버튼 유지) */
+    /* 1. 기본 설정 (기존 유지) */
     footer { visibility: hidden; }
     header[data-testid="stHeader"] { background: transparent; }
     
-    /* 2. 전체 브라우저 스크롤 물리적 차단 및 스크롤바 숨기기 */
     html, body, [data-testid="stAppViewContainer"] { 
         overflow: hidden !important; 
         height: 100vh !important; 
         margin: 0; padding: 0;
         background-color: #0E1117;
-        /* 크롬, 사파리 등 스크롤바 외형 제거 */
-        -ms-overflow-style: none; /* IE and Edge */
-        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
-    html::-webkit-scrollbar, body::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, Opera */
-    }
+    html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
     
-    /* 3. 메인 컨테이너 여백 제로화 및 한 화면 고정 */
     .main .block-container { 
         padding: 0px 5px !important; 
         max-width: 100% !important; 
         height: 100vh !important;
         display: flex;
         flex-direction: column;
-        overflow: hidden !important; /* 내부 스크롤 방지 */
+        overflow: hidden !important;
     }
-    
-    /* 4. 상단 컨트롤러바 한 줄 배열 고정 스타일 */
-    div[data-testid="stHorizontalBlock"] { align-items: center !important; gap: 0.3rem !important; }
-    .stSlider { margin-top: -15px; }
-    .stButton button { height: 40px; border-radius: 8px; font-weight: bold; background-color: #2B3139; color: white; border: none; }
-    
-    /* 5. 사이드바 내부 스크롤 허용 (지표 선택용) */
-    [data-testid="stSidebar"] { overflow-y: auto !important; }
-    
-    /* 6. 가로 모드 시 상단 여백 추가 압축 및 스크롤 강제 차단 */
+
+    /* 2. 가로모드(Landscape) 전용 스타일: 높이 압축 */
     @media (orientation: landscape) {
-        .main .block-container { 
-            padding-top: 0px !important; 
-            overflow: hidden !important;
+        /* 상단 툴바 간격 추가 압축 */
+        div[data-testid="stHorizontalBlock"] { 
+            gap: 0.1rem !important; 
+            margin-bottom: -10px !important; 
         }
-        h4 { font-size: 14px !important; margin: 0 !important; }
-        /* 가로모드에서 차트가 넘칠 경우를 대비해 높이 강제 제한 */
-        .stPlotlyChart { height: auto !important; }
+        
+        /* 슬라이더 높이 최소화 */
+        .stSlider { margin-top: -25px !important; }
+
+        /* 차트 컨테이너 높이를 뷰포트 높이의 60~65%로 강제 제한 */
+        /* 슬라이더로 조절한 chart_h보다 이 CSS 설정이 우선순위를 가집니다 */
+        .stPlotlyChart {
+            height: 65vh !important; 
+        }
+        
+        /* 텍스트 및 제목 크기 축소 */
+        h4, p, div { font-size: 12px !important; }
     }
     </style>
     """, unsafe_allow_html=True)
-
+    
 if 'file_index' not in st.session_state:
     st.session_state.file_index = 0
 

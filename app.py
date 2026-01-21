@@ -7,27 +7,35 @@ from plotly.subplots import make_subplots
 st.set_page_config(page_title="MTS Pro Final", layout="wide", initial_sidebar_state="expanded")
 
 # [핵심] 스크롤 완전 박멸 및 UI 고정 CSS
+# [핵심] 스크롤 완전 박멸 및 UI 고정 CSS 수정본
 st.markdown("""
     <style>
     /* 1. 하단 푸터 숨김 및 상단 헤더 투명화 (사이드바 버튼 유지) */
     footer { visibility: hidden; }
     header[data-testid="stHeader"] { background: transparent; }
     
-    /* 2. 전체 브라우저 스크롤 차단 (물리적으로 스크롤 안 됨) */
+    /* 2. 전체 브라우저 스크롤 물리적 차단 및 스크롤바 숨기기 */
     html, body, [data-testid="stAppViewContainer"] { 
         overflow: hidden !important; 
         height: 100vh !important; 
         margin: 0; padding: 0;
         background-color: #0E1117;
+        /* 크롬, 사파리 등 스크롤바 외형 제거 */
+        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none; /* Firefox */
+    }
+    html::-webkit-scrollbar, body::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
     }
     
     /* 3. 메인 컨테이너 여백 제로화 및 한 화면 고정 */
     .main .block-container { 
         padding: 0px 5px !important; 
         max-width: 100% !important; 
-        height: calc(100vh - 50px) !important;
+        height: 100vh !important;
         display: flex;
         flex-direction: column;
+        overflow: hidden !important; /* 내부 스크롤 방지 */
     }
     
     /* 4. 상단 컨트롤러바 한 줄 배열 고정 스타일 */
@@ -38,10 +46,15 @@ st.markdown("""
     /* 5. 사이드바 내부 스크롤 허용 (지표 선택용) */
     [data-testid="stSidebar"] { overflow-y: auto !important; }
     
-    /* 6. 가로 모드 시 상단 여백 추가 압축 */
+    /* 6. 가로 모드 시 상단 여백 추가 압축 및 스크롤 강제 차단 */
     @media (orientation: landscape) {
-        .main .block-container { padding-top: 0px !important; }
+        .main .block-container { 
+            padding-top: 0px !important; 
+            overflow: hidden !important;
+        }
         h4 { font-size: 14px !important; margin: 0 !important; }
+        /* 가로모드에서 차트가 넘칠 경우를 대비해 높이 강제 제한 */
+        .stPlotlyChart { height: auto !important; }
     }
     </style>
     """, unsafe_allow_html=True)

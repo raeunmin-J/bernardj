@@ -3,23 +3,33 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# 1. 페이지 설정 및 모바일 최적화 레이아웃
-st.set_page_config(page_title="MTS Pro Detail", layout="wide", initial_sidebar_state="collapsed")
+# 1. 페이지 설정: 사이드바를 기본적으로 열어두어(expanded) 바로 조작 가능하게 변경
+st.set_page_config(page_title="MTS Pro Detail", layout="wide", initial_sidebar_state="expanded")
 
-# [스크롤 제거 및 UI 밀착 CSS]
+# [스크롤 제거 및 UI 밀착 CSS] - 사이드바 버튼을 위해 헤더 숨김 해제
 st.markdown("""
     <style>
-    header[data-testid="stHeader"] { visibility: hidden; height: 0; }
+    /* 하단 푸터만 숨김 */
     footer { visibility: hidden; }
+    
+    /* 전체 화면 고정 및 스크롤 차단 */
     html, body, [data-testid="stAppViewContainer"] { 
         overflow: hidden !important; 
         height: 100vh !important; 
         margin: 0; padding: 0;
     }
+    
+    /* 메인 컨테이너 여백 제로화 */
     .main .block-container { 
         padding: 0px 5px !important; 
         max-width: 100% !important; 
     }
+    
+    /* 사이드바 내부 스크롤은 허용 (지표가 많으므로) */
+    [data-testid="stSidebar"] {
+        overflow-y: auto !important;
+    }
+
     div[data-testid="stVerticalBlock"] { gap: 0rem !important; }
     .stSlider { margin-top: -20px; }
     .stButton button { height: 35px; border-radius: 5px; }
@@ -41,7 +51,7 @@ def check_password():
     return True
 
 if check_password():
-    # 2. 좌측 세로 툴바 (지표 상세 세분화)
+    # 2. 좌측 세로 툴바 (사이드바)
     with st.sidebar:
         st.title("🛠 Toolbar")
         uploaded_files = st.file_uploader("Upload CSV", type=['csv', 'txt'], accept_multiple_files=True)
@@ -53,7 +63,7 @@ if check_password():
             show_ma20 = st.toggle("MA20", False)
             show_ma100 = st.toggle("MA100", False)
 
-            # 볼린저 밴드 상세 (전부 실선 예정)
+            # 볼린저 밴드 상세 (실선)
             st.subheader("Bollinger Bands")
             show_bb26 = st.checkbox("BB26 Upper", False)
             show_bb52 = st.checkbox("BB52 Upper", False)
@@ -62,7 +72,7 @@ if check_password():
             show_wbb52 = st.checkbox("WBB52 Upper", False)
             show_wbb129 = st.checkbox("WBB129 Upper", False)
 
-            # 가격 채널 상세
+            # 가격 채널 상세 (실선)
             st.subheader("Price Channels")
             show_pc52 = st.checkbox("PC52 Mid", False)
             show_pc129 = st.checkbox("PC129 Mid", False)
@@ -98,7 +108,7 @@ if check_password():
 
         st.markdown(f"<center><h4 style='margin:-10px 0 5px 0;'>{comp_name}</h4></center>", unsafe_allow_html=True)
 
-        # 4. 차트 생성 (휴장일 제거 포함)
+        # 4. 차트 생성
         display_df = df.tail(zoom_val)
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02, row_heights=[0.75, 0.25])
 
@@ -113,12 +123,10 @@ if check_password():
         v_colors = ['#FF3232' if r['Close'] >= r['Open'] else '#0066FF' for _, r in display_df.iterrows()]
         fig.add_trace(go.Bar(x=display_df['Date'], y=display_df['Volume'], marker_color=v_colors), row=2, col=1)
 
-        # [상세 지표 레이어 - 모두 실선(solid) 표시]
-        # 이동평균선
+        # 지표 레이어 (모두 실선)
         if show_ma20: fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df['MA20'], name="MA20", line=dict(color='orange', width=1)), row=1, col=1)
         if show_ma100: fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df['MA100'], name="MA100", line=dict(color='cyan', width=1)), row=1, col=1)
         
-        # 볼린저 밴드 리스트 (점선 -> 실선 변경)
         bb_list = [
             ('BB26_Upper1', show_bb26, '#FFFF00'), ('BB52_Upper1', show_bb52, '#FF8C00'),
             ('BB129_Upper1', show_bb129, '#FF5722'), ('BB260_Upper1', show_bb260, '#E91E63'),
@@ -128,7 +136,6 @@ if check_password():
             if show and col in display_df.columns:
                 fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df[col], name=col, line=dict(color=color, width=1)), row=1, col=1)
 
-        # 가격 채널 리스트 (실선)
         pc_list = [
             ('PC52_Mid', show_pc52, '#ADFF2F'), ('PC129_Mid', show_pc129, '#00FF7F'),
             ('PC260_Mid', show_pc260, '#00BFFF'), ('PC645_Mid', show_pc645, '#FFFFFF')
@@ -158,4 +165,4 @@ if check_password():
 
         st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True, 'displayModeBar': False})
     else:
-        st.info("📂 왼쪽 사이드바(>)를 열어 CSV 파일을 업로드하세요.")
+        st.info("📂 사이드바에서 CSV 파일을 업로드하세요.")

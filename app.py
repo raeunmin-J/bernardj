@@ -1,15 +1,19 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
-# 페이지 설정
-st.set_page_config(page_title="주식 분석 시스템", layout="wide")
+# 1. 페이지 설정
+st.set_page_config(page_title="MTS 주식 분석", layout="wide")
 
-# 1. 보안 설정
+# 2. 세션 상태 초기화 (파일 인덱스 관리)
+if 'file_index' not in st.session_state:
+    st.session_state.file_index = 0
+
 def check_password():
     if "password_correct" not in st.session_state:
-        st.title("🔒 주식 분석 시스템 로그인")
-        password = st.text_input("비밀번호를 입력하세요", type="password")
+        st.title("🔒 MTS 시스템 로그인")
+        password = st.text_input("Access Password", type="password")
         if st.button("로그인"):
             if password == st.secrets.get("MY_PASSWORD", "1234"):
                 st.session_state["password_correct"] = True
@@ -20,106 +24,99 @@ def check_password():
     return True
 
 if check_password():
-    st.title("📈 전용 주식 차트 대시보드")
-    
-    uploaded_file = st.sidebar.file_uploader("CSV 파일을 업로드하세요", type=['csv'])
+    # 상단 탭 구성
+    tab1, tab2, tab3 = st.tabs(["📊 현재가 차트", "🛠 지표 설정", "📂 파일 관리"])
 
-    if uploaded_file:
-        df = pd.read_csv(uploaded_file)
+    with tab3:
+        # accept_multiple_files=True를 설정하여 여러 파일을 한 번에 업로드 가능하게 함
+        uploaded_files = st.file_uploader(
+            "CSV 파일들을 한 번에 선택하세요 (구글 드라이브 가능)", 
+            type=['csv'], 
+            accept_multiple_files=True
+        )
+        if uploaded_files:
+            st.success(f"{len(uploaded_files)}개의 파일이 로드되었습니다.")
+            # 파일 리스트가 바뀌면 인덱스 초기화
+            if 'last_upload_count' not in st.session_state or st.session_state.last_upload_count != len(uploaded_files):
+                st.session_state.file_index = 0
+                st.session_state.last_upload_count = len(uploaded_files)
+
+    if uploaded_files:
+        # 현재 선택된 파일 가져오기
+        current_file = uploaded_files[st.session_state.file_index]
+        df = pd.read_csv(current_file)
         
-        # 컬럼명 매핑 (한글 -> 영문)
-        rename_map = {
-            '날짜': 'Date', '시가': 'Open', '고가': 'High', 
-            '저가': 'Low', '종가': 'Close', '거래량': 'Volume'
-        }
+        # 데이터 정리
+        rename_map = {'날짜': 'Date', '시가': 'Open', '고가': 'High', '저가': 'Low', '종가': 'Close', '거래량': 'Volume'}
         df = df.rename(columns=rename_map)
-        
-        # 날짜 문자열 변환 (주말 공백 제거용)
         df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m-%d')
         df = df.sort_values('Date')
-        
-        # [사이드바 설정]
-        st.sidebar.header("📊 차트 설정")
-        view_count = st.sidebar.slider("표시 데이터 개수", 30, len(df), 200)
-        
-        # 1. 이동평균선 (MA)
-        st.sidebar.subheader("이동평균선 (MA)")
-        show_ma20 = st.sidebar.checkbox("MA20", value=False)
-        show_ma100 = st.sidebar.checkbox("MA100", value=False)
-        show_ma300 = st.sidebar.checkbox("MA300", value=False)
-        
-        # 2. 볼린저 밴드 (BB Upper) - 점선 유지
-        st.sidebar.subheader("볼린저 밴드 (상단선)")
-        show_bb26 = st.sidebar.checkbox("BB26 Upper", value=False)
-        show_bb52 = st.sidebar.checkbox("BB52 Upper", value=False)
-        show_bb129 = st.sidebar.checkbox("BB129 Upper", value=False)
-        show_bb260 = st.sidebar.checkbox("BB260 Upper", value=False)
-        
-        # 3. 가격 채널 (Price Channel Mid) - 실선으로 변경
-        st.sidebar.subheader("가격 채널 (중심선)")
-        show_pc52 = st.sidebar.checkbox("PC52 Mid", value=False)
-        show_pc129 = st.sidebar.checkbox("PC129 Mid", value=False)
-        show_pc260 = st.sidebar.checkbox("PC260 Mid", value=False)
-        show_pc645 = st.sidebar.checkbox("PC645 Mid", value=False)
 
-        display_df = df.tail(view_count)
+        with tab2:
+            st.write("🔧 분석 도구함")
+            c1, c2 = st.columns(2)
+            with c1:
+                st.info("이동평균선")
+                show_ma20 = st.toggle("MA20", False)
+                show_ma100 = st.toggle("MA100", False)
+            with c2:
+                st.info("밴드/채널")
+                show_bb = st.toggle("Bollinger Upper", False)
+                show_pc = st.toggle("Price Channel Mid", False)
 
-        # 차트 생성
-        fig = go.Figure()
+        with tab1:
+            # [파일 넘기기 컨트롤러]
+            col_prev, col_info, col_next = st.columns([1, 3, 1])
+            
+            with col_prev:
+                if st.button("◀ 이전"):
+                    # 처음에서 누르면 마지막으로 이동
+                    st.session_state.file_index = (st.session_state.file_index - 1) % len(uploaded_files)
+                    st.rerun()
+            
+            with col_info:
+                st.markdown(f"<center><b>{current_file.name}</b> ({st.session_state.file_index + 1} / {len(uploaded_files)})</center>", unsafe_allow_html=True)
+            
+            with col_next:
+                if st.button("다음 ▶"):
+                    # 마지막에서 누르면 처음으로 이동 (순환)
+                    st.session_state.file_index = (st.session_state.file_index + 1) % len(uploaded_files)
+                    st.rerun()
 
-        # [기본] 캔들스틱
-        fig.add_trace(go.Candlestick(
-            x=display_df['Date'],
-            open=display_df['Open'], high=display_df['High'],
-            low=display_df['Low'], close=display_df['Close'],
-            name="가격",
-            increasing_line_color='#ef5350', decreasing_line_color='#2962ff'
-        ))
+            # 줌 슬라이더
+            zoom_val = st.select_slider("🔍 차트 범위", options=[30, 60, 100, 200, 300], value=100)
+            display_df = df.tail(zoom_val)
 
-        # [지표 추가] 이동평균선 (실선)
-        ma_cfg = [('MA20', show_ma20, 'orange'), ('MA100', show_ma100, 'cyan'), ('MA300', show_ma300, 'purple')]
-        for col, show, color in ma_cfg:
-            if show and col in display_df.columns:
-                fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df[col], name=col, line=dict(color=color, width=1.5)))
+            # 차트 구성 (기존 MTS 로직 유지)
+            fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.7, 0.3])
 
-        # [지표 추가] 볼린저 밴드 상단선 (점선 유지)
-        bb_cfg = [
-            ('BB26_Upper1', show_bb26, '#FFEB3B'), 
-            ('BB52_Upper1', show_bb52, '#FF9800'), 
-            ('BB129_Upper1', show_bb129, '#FF5722'),
-            ('BB260_Upper1', show_bb260, '#E91E63')
-        ]
-        for col, show, color in bb_cfg:
-            if show and col in display_df.columns:
-                fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df[col], name=col, line=dict(color=color, width=1, dash='dot')))
+            # 캔들스틱
+            fig.add_trace(go.Candlestick(
+                x=display_df['Date'], open=display_df['Open'], high=display_df['High'],
+                low=display_df['Low'], close=display_df['Close'], name="가격",
+                increasing_line_color='#FF3232', decreasing_line_color='#0066FF'
+            ), row=1, col=1)
 
-        # [지표 추가] 가격 채널 중심선 (점선 -> 실선으로 변경됨)
-        pc_cfg = [
-            ('PC52_Mid', show_pc52, 'yellow'), 
-            ('PC129_Mid', show_pc129, 'lightgreen'),
-            ('PC260_Mid', show_pc260, 'skyblue'),
-            ('PC645_Mid', show_pc645, 'white')
-        ]
-        for col, show, color in pc_cfg:
-            if show and col in display_df.columns:
-                # dash='dash' 제거하여 실선으로 출력
-                fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df[col], name=col, line=dict(color=color, width=1.2)))
+            # 거래량
+            v_colors = ['#FF3232' if r['Close'] >= r['Open'] else '#0066FF' for _, r in display_df.iterrows()]
+            fig.add_trace(go.Bar(x=display_df['Date'], y=display_df['Volume'], marker_color=v_colors, opacity=0.8), row=2, col=1)
 
-        # 주말 공백 제거 설정
-        fig.update_xaxes(type='category', nticks=10)
+            # 지표 표시
+            if show_ma20: fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df['MA20'], name="MA20", line=dict(color='orange', width=1)), row=1, col=1)
+            if show_ma100: fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df['MA100'], name="MA100", line=dict(color='cyan', width=1)), row=1, col=1)
+            
+            # 레이아웃 설정
+            fig.update_xaxes(type='category', nticks=5, showgrid=False, row=2, col=1)
+            fig.update_xaxes(type='category', visible=False, row=1, col=1)
+            fig.update_yaxes(side="right", gridcolor="#333", row=1, col=1)
+            fig.update_yaxes(side="right", showgrid=False, row=2, col=1)
 
-        # 레이아웃 설정
-        fig.update_layout(
-            height=750, 
-            template="plotly_dark", 
-            xaxis_rangeslider_visible=False,
-            margin=dict(l=10, r=10, t=10, b=10),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
+            fig.update_layout(
+                height=550, template="plotly_dark", xaxis_rangeslider_visible=False,
+                margin=dict(l=5, r=40, t=5, b=5), showlegend=False, dragmode='pan'
+            )
 
-        st.plotly_chart(fig, use_container_width=True)
-        
-        with st.expander("데이터 테이블 보기"):
-            st.dataframe(display_df.iloc[::-1])
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            
     else:
-        st.info("사이드바에서 CSV 파일을 업로드해 주세요.")
+        st.info("📂 '파일 관리' 탭에서 여러 개의 CSV 파일을 한 번에 업로드하세요.")

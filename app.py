@@ -3,19 +3,19 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# 1. ÆäÀÌÁö ¼³Á¤
+# 1. í˜ì´ì§€ ì„¤ì •
 st.set_page_config(page_title="MTS Pro Final", layout="wide", initial_sidebar_state="expanded")
 
-# [»çÀÌµå¹Ù] ÁöÇ¥ ¼¼ºĞÈ­ ¹× ³ôÀÌ Á¶Àı (CSS Àû¿ëÀ» À§ÇØ »ó´ÜÀ¸·Î ¹èÄ¡)
+# [ì‚¬ì´ë“œë°”] ì§€í‘œ ì„¸ë¶„í™” ë° ë†’ì´ ì¡°ì ˆ
 with st.sidebar:
     st.title("?? MTS TOOLBAR")
     uploaded_files = st.file_uploader("Upload CSV", type=['csv', 'txt'], accept_multiple_files=True)
     
-    # ¼öµ¿ ³ôÀÌ Á¶Àı ½½¶óÀÌ´õ (±âº»°ª ¼³Á¤)
+    # ìˆ˜ë™ ë†’ì´ ì¡°ì ˆ ìŠ¬ë¼ì´ë” (CSS ë³€ìˆ˜ë¡œ í™œìš©ë¨)
     st.divider()
     st.subheader("Chart Height Settings")
-    chart_h = st.slider("Portrait Height (¼¼·Î)", 200, 1000, 480)
-    landscape_h = st.slider("Landscape Height (°¡·Î)", 100, 600, 250)
+    chart_h = st.slider("Portrait Height (ì„¸ë¡œ)", 200, 1000, 480)
+    landscape_h = st.slider("Landscape Height (ê°€ë¡œ)", 100, 600, 250)
 
     if uploaded_files:
         st.divider()
@@ -35,25 +35,28 @@ with st.sidebar:
         show_pc260 = st.checkbox("PC260 Mid", False)
         show_pc645 = st.checkbox("PC645 Mid", False)
 
-# [ÇÙ½É] ½ºÅ©·Ñ ¹Ú¸ê ¹× ¼öµ¿ ³ôÀÌ Á¶Àı CSS (f-string ¿¡·¯ ¹æÁö ¿Ï·á)
+# [í•µì‹¬] ìŠ¤í¬ë¡¤ ë°•ë©¸ ë° ëª¨ë“œë³„ ìˆ˜ë™ ë†’ì´ ì ìš© CSS
+# f-string ì‚¬ìš© ì‹œ CSSì˜ ì¤‘ê´„í˜¸ëŠ” {{ }} ì²˜ëŸ¼ ë‘ ë²ˆ ì¨ì•¼ ì—ëŸ¬ê°€ ë‚˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
 st.markdown(f"""
     <style>
-    /* 1. ±âº» UI Å¬¸®´× */
+    /* 1. ê¸°ë³¸ UI í´ë¦¬ë‹ */
     footer {{ visibility: hidden; }}
     header[data-testid="stHeader"] {{ background: transparent; }}
     
-    /* 2. ÀüÃ¼ ºê¶ó¿ìÀú ½ºÅ©·Ñ Â÷´Ü */
+    /* 2. ì „ì²´ ë¸Œë¼ìš°ì € ìŠ¤í¬ë¡¤ ì°¨ë‹¨ (ìŠ¤í¬ë¡¤ë°” ì™„ì „ ì œê±°) */
     html, body, [data-testid="stAppViewContainer"] {{ 
         overflow: hidden !important; 
         height: 100vh !important; 
         margin: 0; padding: 0;
         background-color: #0E1117;
-        -ms-overflow-style: none;
-        scrollbar-width: none;
+        -ms-overflow-style: none; /* IE/Edge */
+        scrollbar-width: none; /* Firefox */
     }}
-    html::-webkit-scrollbar, body::-webkit-scrollbar {{ display: none; }}
+    html::-webkit-scrollbar, body::-webkit-scrollbar {{
+        display: none !important; /* Chrome/Safari */
+    }}
     
-    /* 3. ¸ŞÀÎ ÄÁÅ×ÀÌ³Ê °íÁ¤ */
+    /* 3. ë©”ì¸ ì»¨í…Œì´ë„ˆ ê³ ì • ë° ë‚´ë¶€ ìŠ¤í¬ë¡¤ ë°©ì§€ */
     .main .block-container {{ 
         padding: 0px 5px !important; 
         max-width: 100% !important; 
@@ -63,15 +66,15 @@ st.markdown(f"""
         overflow: hidden !important;
     }}
     
-    /* 4. »ó´Ü ÄÁÆ®·Ñ·¯¹Ù °íÁ¤ ½ºÅ¸ÀÏ */
+    /* 4. ìƒë‹¨ ì»¨íŠ¸ë¡¤ëŸ¬ë°” ê³ ì • ë° ì—¬ë°± ìµœì í™” */
     div[data-testid="stHorizontalBlock"] {{ align-items: center !important; gap: 0.3rem !important; }}
     .stSlider {{ margin-top: -15px; }}
     .stButton button {{ height: 40px; border-radius: 8px; font-weight: bold; background-color: #2B3139; color: white; border: none; }}
     
-    /* 5. »çÀÌµå¹Ù ½ºÅ©·Ñ Çã¿ë */
+    /* 5. ì‚¬ì´ë“œë°”ëŠ” ë©”ë‰´ ì„ íƒì„ ìœ„í•´ ìŠ¤í¬ë¡¤ í—ˆìš© */
     [data-testid="stSidebar"] {{ overflow-y: auto !important; }}
     
-    /* 6. ¸ğµåº° Â÷Æ® ³ôÀÌ ¼öµ¿ Àû¿ë */
+    /* 6. ê°€ë¡œ/ì„¸ë¡œ ëª¨ë“œë³„ ì°¨íŠ¸ ë†’ì´ ìˆ˜ë™ ì ìš© */
     @media (orientation: landscape) {{
         .stPlotlyChart {{ height: {landscape_h}px !important; }}
         div[data-testid="stHorizontalBlock"] {{ margin-bottom: -10px !important; }}
@@ -102,15 +105,15 @@ if check_password():
         current_file = uploaded_files[st.session_state.file_index]
         df = pd.read_csv(current_file, encoding='utf-8-sig')
         
-        rename_map = {'³¯Â¥': 'Date', '½Ã°¡': 'Open', '°í°¡': 'High', 'Àú°¡': 'Low', 'Á¾°¡': 'Close', '°Å·¡·®': 'Volume'}
+        rename_map = {'ë‚ ì§œ': 'Date', 'ì‹œê°€': 'Open', 'ê³ ê°€': 'High', 'ì €ê°€': 'Low', 'ì¢…ê°€': 'Close', 'ê±°ë˜ëŸ‰': 'Volume'}
         df = df.rename(columns=rename_map)
         df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m-%d')
         df = df.sort_values('Date')
-        comp_name = df['Á¾¸ñ¸í'].iloc[0] if 'Á¾¸ñ¸í' in df.columns else current_file.name
+        comp_name = df['ì¢…ëª©ëª…'].iloc[0] if 'ì¢…ëª©ëª…' in df.columns else current_file.name
 
         t_col1, t_col2, t_col3, t_col4 = st.columns([0.6, 2.5, 3.5, 0.6])
         with t_col1:
-            if st.button("¢¸"):
+            if st.button("â—€"):
                 st.session_state.file_index = (st.session_state.file_index - 1) % len(uploaded_files)
                 st.rerun()
         with t_col2:
@@ -118,7 +121,7 @@ if check_password():
         with t_col3:
             zoom_val = st.slider("R", 10, len(df), min(120, len(df)), step=10, label_visibility="collapsed")
         with t_col4:
-            if st.button("¢º"):
+            if st.button("â–¶"):
                 st.session_state.file_index = (st.session_state.file_index + 1) % len(uploaded_files)
                 st.rerun()
 
@@ -135,8 +138,10 @@ if check_password():
         fig.add_trace(go.Bar(x=display_df['Date'], y=display_df['Volume'], marker_color=v_cols), row=2, col=1)
 
         if show_ma:
-            fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df['MA20'], name="MA20", line=dict(color='orange', width=1.5)), row=1, col=1)
-            fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df['MA100'], name="MA100", line=dict(color='cyan', width=1.5)), row=1, col=1)
+            if 'MA20' in display_df.columns:
+                fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df['MA20'], name="MA20", line=dict(color='orange', width=1.5)), row=1, col=1)
+            if 'MA100' in display_df.columns:
+                fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df['MA100'], name="MA100", line=dict(color='cyan', width=1.5)), row=1, col=1)
         
         bb_cfg = [('BB26_Upper1', show_bb26, '#FFFF00'), ('BB52_Upper1', show_bb52, '#FF8C00'), ('BB129_Upper1', show_bb129, '#FF5722'), ('BB260_Upper1', show_bb260, '#E91E63'), ('WBB52_Upper1', show_wbb52, '#DDA0DD')]
         for col, show, clr in bb_cfg:
@@ -167,8 +172,9 @@ if check_password():
             buttons=[dict(label="FIT", method="relayout", args=[{"yaxis.autorange": True}])]
         )])
 
+        # CSSì—ì„œ ë†’ì´ë¥¼ ê°•ì œí•˜ë¯€ë¡œ ì—¬ê¸°ì„œ height ì¸ìëŠ” ìƒëµí•©ë‹ˆë‹¤.
         st.plotly_chart(fig, use_container_width=True, config={
             'scrollZoom': True, 'displayModeBar': False, 'responsive': True, 'doubleClick': 'reset'
         })
     else:
-        st.info("?? »çÀÌµå¹Ù(>)¿¡¼­ ÆÄÀÏÀ» ¾÷·ÎµåÇÏ¼¼¿ä.")
+        st.info("?? ì‚¬ì´ë“œë°”(>)ì—ì„œ íŒŒì¼ì„ ì—…ë¡œë“œí•˜ì„¸ìš”.")

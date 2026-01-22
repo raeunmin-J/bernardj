@@ -3,66 +3,92 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# 1. í˜ì´ì§€ ì„¤ì •: ì‚¬ì´ë“œë°” ë²„íŠ¼ì´ ë³´ì´ë„ë¡ í—¤ë”ë¥¼ ìœ ì§€í•˜ê³  ê¸°ë³¸ ìƒíƒœë¥¼ ì—´ë¦¼ìœ¼ë¡œ ì„¤ì •
+# 1. ÆäÀÌÁö ¼³Á¤
 st.set_page_config(page_title="MTS Pro Final", layout="wide", initial_sidebar_state="expanded")
 
-# [í•µì‹¬] ìŠ¤í¬ë¡¤ ì™„ì „ ë°•ë©¸ ë° UI ê³ ì • CSS
-# [í•µì‹¬] ìŠ¤í¬ë¡¤ ì™„ì „ ë°•ë©¸ ë° UI ê³ ì • CSS ìˆ˜ì •ë³¸
-# [í•µì‹¬] ê°€ë¡œëª¨ë“œ ì‹œ ì°¨íŠ¸ ë†’ì´ ìë™ ì¶•ì†Œ ë° ìŠ¤í¬ë¡¤ ë°•ë©¸ CSS
-st.markdown("""
-    <style>
-    /* 1. ê¸°ë³¸ ì„¤ì • (ê¸°ì¡´ ìœ ì§€) */
-    footer { visibility: hidden; }
-    header[data-testid="stHeader"] { background: transparent; }
+# [»çÀÌµå¹Ù] ÁöÇ¥ ¼¼ºĞÈ­ ¹× ³ôÀÌ Á¶Àı (CSS Àû¿ëÀ» À§ÇØ »ó´ÜÀ¸·Î ¹èÄ¡)
+with st.sidebar:
+    st.title("?? MTS TOOLBAR")
+    uploaded_files = st.file_uploader("Upload CSV", type=['csv', 'txt'], accept_multiple_files=True)
     
-    html, body, [data-testid="stAppViewContainer"] { 
+    # ¼öµ¿ ³ôÀÌ Á¶Àı ½½¶óÀÌ´õ (±âº»°ª ¼³Á¤)
+    st.divider()
+    st.subheader("Chart Height Settings")
+    chart_h = st.slider("Portrait Height (¼¼·Î)", 200, 1000, 480)
+    landscape_h = st.slider("Landscape Height (°¡·Î)", 100, 600, 250)
+
+    if uploaded_files:
+        st.divider()
+        st.subheader("Indicators (Solid Line)")
+        show_ma = st.toggle("MA 20/100", True)
+        
+        st.info("Bollinger Bands")
+        show_bb26 = st.checkbox("BB26 Up", False)
+        show_bb52 = st.checkbox("BB52 Up", False)
+        show_bb129 = st.checkbox("BB129 Up", False)
+        show_bb260 = st.checkbox("BB260 Up", False)
+        show_wbb52 = st.checkbox("WBB52 Up", False)
+        
+        st.info("Price Channels")
+        show_pc52 = st.checkbox("PC52 Mid", False)
+        show_pc129 = st.checkbox("PC129 Mid", False)
+        show_pc260 = st.checkbox("PC260 Mid", False)
+        show_pc645 = st.checkbox("PC645 Mid", False)
+
+# [ÇÙ½É] ½ºÅ©·Ñ ¹Ú¸ê ¹× ¼öµ¿ ³ôÀÌ Á¶Àı CSS (f-string ¿¡·¯ ¹æÁö ¿Ï·á)
+st.markdown(f"""
+    <style>
+    /* 1. ±âº» UI Å¬¸®´× */
+    footer {{ visibility: hidden; }}
+    header[data-testid="stHeader"] {{ background: transparent; }}
+    
+    /* 2. ÀüÃ¼ ºê¶ó¿ìÀú ½ºÅ©·Ñ Â÷´Ü */
+    html, body, [data-testid="stAppViewContainer"] {{ 
         overflow: hidden !important; 
         height: 100vh !important; 
         margin: 0; padding: 0;
         background-color: #0E1117;
         -ms-overflow-style: none;
         scrollbar-width: none;
-    }
-    html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+    }}
+    html::-webkit-scrollbar, body::-webkit-scrollbar {{ display: none; }}
     
-    .main .block-container { 
+    /* 3. ¸ŞÀÎ ÄÁÅ×ÀÌ³Ê °íÁ¤ */
+    .main .block-container {{ 
         padding: 0px 5px !important; 
         max-width: 100% !important; 
         height: 100vh !important;
         display: flex;
         flex-direction: column;
         overflow: hidden !important;
-    }
-
-    /* 2. ê°€ë¡œëª¨ë“œ(Landscape) ì „ìš© ìŠ¤íƒ€ì¼: ë†’ì´ ì••ì¶• */
-    @media (orientation: landscape) {
-        /* ìƒë‹¨ íˆ´ë°” ê°„ê²© ì¶”ê°€ ì••ì¶• */
-        div[data-testid="stHorizontalBlock"] { 
-            gap: 0.1rem !important; 
-            margin-bottom: -10px !important; 
-        }
-        
-        /* ìŠ¬ë¼ì´ë” ë†’ì´ ìµœì†Œí™” */
-        .stSlider { margin-top: -25px !important; }
-
-        /* ì°¨íŠ¸ ì»¨í…Œì´ë„ˆ ë†’ì´ë¥¼ ë·°í¬íŠ¸ ë†’ì´ì˜ 60~65%ë¡œ ê°•ì œ ì œí•œ */
-        /* ìŠ¬ë¼ì´ë”ë¡œ ì¡°ì ˆí•œ chart_hë³´ë‹¤ ì´ CSS ì„¤ì •ì´ ìš°ì„ ìˆœìœ„ë¥¼ ê°€ì§‘ë‹ˆë‹¤ */
-        .stPlotlyChart {
-            height: 65vh !important; 
-        }
-        
-        /* í…ìŠ¤íŠ¸ ë° ì œëª© í¬ê¸° ì¶•ì†Œ */
-        h4, p, div { font-size: 12px !important; }
-    }
+    }}
+    
+    /* 4. »ó´Ü ÄÁÆ®·Ñ·¯¹Ù °íÁ¤ ½ºÅ¸ÀÏ */
+    div[data-testid="stHorizontalBlock"] {{ align-items: center !important; gap: 0.3rem !important; }}
+    .stSlider {{ margin-top: -15px; }}
+    .stButton button {{ height: 40px; border-radius: 8px; font-weight: bold; background-color: #2B3139; color: white; border: none; }}
+    
+    /* 5. »çÀÌµå¹Ù ½ºÅ©·Ñ Çã¿ë */
+    [data-testid="stSidebar"] {{ overflow-y: auto !important; }}
+    
+    /* 6. ¸ğµåº° Â÷Æ® ³ôÀÌ ¼öµ¿ Àû¿ë */
+    @media (orientation: landscape) {{
+        .stPlotlyChart {{ height: {landscape_h}px !important; }}
+        div[data-testid="stHorizontalBlock"] {{ margin-bottom: -10px !important; }}
+        .stSlider {{ margin-top: -25px !important; }}
+    }}
+    @media (orientation: portrait) {{
+        .stPlotlyChart {{ height: {chart_h}px !important; }}
+    }}
     </style>
     """, unsafe_allow_html=True)
-    
+
 if 'file_index' not in st.session_state:
     st.session_state.file_index = 0
 
 def check_password():
     if "password_correct" not in st.session_state:
-        st.title("ğŸ”’ MTS Connect")
+        st.title("?? MTS Connect")
         password = st.text_input("Access Key", type="password")
         if st.button("LOGIN"):
             if password == st.secrets.get("MY_PASSWORD", "1234"):
@@ -72,46 +98,19 @@ def check_password():
     return True
 
 if check_password():
-    # [ì‚¬ì´ë“œë°”] ì§€í‘œ ì„¸ë¶„í™” ë° ë†’ì´ ì¡°ì ˆ
-    with st.sidebar:
-        st.title("ğŸ›  MTS TOOLBAR")
-        uploaded_files = st.file_uploader("Upload CSV", type=['csv', 'txt'], accept_multiple_files=True)
-        if uploaded_files:
-            st.divider()
-            st.subheader("Indicators (Solid Line)")
-            show_ma = st.toggle("MA 20/100", True)
-            
-            st.info("Bollinger Bands")
-            show_bb26 = st.checkbox("BB26 Up", False)
-            show_bb52 = st.checkbox("BB52 Up", False)
-            show_bb129 = st.checkbox("BB129 Up", False)
-            show_bb260 = st.checkbox("BB260 Up", False)
-            show_wbb52 = st.checkbox("WBB52 Up", False)
-            
-            st.info("Price Channels")
-            show_pc52 = st.checkbox("PC52 Mid", False)
-            show_pc129 = st.checkbox("PC129 Mid", False)
-            show_pc260 = st.checkbox("PC260 Mid", False)
-            show_pc645 = st.checkbox("PC645 Mid", False)
-            
-            st.divider()
-            chart_h = st.slider("Chart height", 200, 800, 480)
-
     if uploaded_files:
         current_file = uploaded_files[st.session_state.file_index]
         df = pd.read_csv(current_file, encoding='utf-8-sig')
         
-        # ë°ì´í„° ì „ì²˜ë¦¬ ë° ë‚ ì§œ ì¹´í…Œê³ ë¦¬í™” (ê³µë°± ì œê±°)
-        rename_map = {'ë‚ ì§œ': 'Date', 'ì‹œê°€': 'Open', 'ê³ ê°€': 'High', 'ì €ê°€': 'Low', 'ì¢…ê°€': 'Close', 'ê±°ë˜ëŸ‰': 'Volume'}
+        rename_map = {'³¯Â¥': 'Date', '½Ã°¡': 'Open', '°í°¡': 'High', 'Àú°¡': 'Low', 'Á¾°¡': 'Close', '°Å·¡·®': 'Volume'}
         df = df.rename(columns=rename_map)
         df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m-%d')
         df = df.sort_values('Date')
-        comp_name = df['ì¢…ëª©ëª…'].iloc[0] if 'ì¢…ëª©ëª…' in df.columns else current_file.name
+        comp_name = df['Á¾¸ñ¸í'].iloc[0] if 'Á¾¸ñ¸í' in df.columns else current_file.name
 
-        # [ìµœìƒë‹¨ ê³ ì • íˆ´ë°”: < íšŒì‚¬ëª… ìŠ¬ë¼ì´ë” > í•œ ì¤„ ë°°ì—´]
         t_col1, t_col2, t_col3, t_col4 = st.columns([0.6, 2.5, 3.5, 0.6])
         with t_col1:
-            if st.button("â—€"):
+            if st.button("¢¸"):
                 st.session_state.file_index = (st.session_state.file_index - 1) % len(uploaded_files)
                 st.rerun()
         with t_col2:
@@ -119,17 +118,13 @@ if check_password():
         with t_col3:
             zoom_val = st.slider("R", 10, len(df), min(120, len(df)), step=10, label_visibility="collapsed")
         with t_col4:
-            if st.button("â–¶"):
+            if st.button("¢º"):
                 st.session_state.file_index = (st.session_state.file_index + 1) % len(uploaded_files)
                 st.rerun()
 
-        # ë°ì´í„° ìŠ¬ë¼ì´ì‹± (ìº”ë“¤ ì—†ëŠ” ì˜ì—­ ì´íƒˆ ë°©ì§€ìš©)
         display_df = df.tail(zoom_val)
-
-        # ì°¨íŠ¸ ìƒì„± (2ë‹¨ êµ¬ì„±)
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02, row_heights=[0.75, 0.25])
 
-        # ìº”ë“¤ìŠ¤í‹± (í•­ìƒ ë°ì´í„° ë²”ìœ„ ë‚´ ê³ ì •)
         fig.add_trace(go.Candlestick(
             x=display_df['Date'], open=display_df['Open'], high=display_df['High'],
             low=display_df['Low'], close=display_df['Close'], name="Price",
@@ -139,42 +134,34 @@ if check_password():
         v_cols = ['#FF3232' if r['Close'] >= r['Open'] else '#0066FF' for _, r in display_df.iterrows()]
         fig.add_trace(go.Bar(x=display_df['Date'], y=display_df['Volume'], marker_color=v_cols), row=2, col=1)
 
-        # [ì§€í‘œ ë ˆì´ì–´ - ëª¨ë‘ ì‹¤ì„ ]
         if show_ma:
             fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df['MA20'], name="MA20", line=dict(color='orange', width=1.5)), row=1, col=1)
             fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df['MA100'], name="MA100", line=dict(color='cyan', width=1.5)), row=1, col=1)
         
-        # ë³¼ë¦°ì € ë°´ë“œ ì‹¤ì„  ëª©ë¡
         bb_cfg = [('BB26_Upper1', show_bb26, '#FFFF00'), ('BB52_Upper1', show_bb52, '#FF8C00'), ('BB129_Upper1', show_bb129, '#FF5722'), ('BB260_Upper1', show_bb260, '#E91E63'), ('WBB52_Upper1', show_wbb52, '#DDA0DD')]
         for col, show, clr in bb_cfg:
             if show and col in display_df.columns:
                 fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df[col], name=col, line=dict(color=clr, width=1.2)), row=1, col=1)
 
-        # ê°€ê²© ì±„ë„ ì‹¤ì„  ëª©ë¡
         pc_cfg = [('PC52_Mid', show_pc52, '#ADFF2F'), ('PC129_Mid', show_pc129, '#00FF7F'), ('PC260_Mid', show_pc260, '#00BFFF'), ('PC645_Mid', show_pc645, '#FFFFFF')]
         for col, show, clr in pc_cfg:
             if show and col in display_df.columns:
                 fig.add_trace(go.Scatter(x=display_df['Date'], y=display_df[col], name=col, line=dict(color=clr, width=1.5)), row=1, col=1)
 
-        # [MTS ì¡°ì‘ ìµœì í™”]
-        fig.update_xaxes(type='category', row=1, col=1) # íœ´ì¥ì¼ ê³µë°± ì œê±°
+        fig.update_xaxes(type='category', row=1, col=1)
         fig.update_xaxes(type='category', nticks=5, row=2, col=1)
-        
-        # ìš°ì¸¡ ê°€ê²©ì¶• & Yì¶• ë†’ë‚®ì´ ì¡°ì ˆ & ìë™ ìŠ¤ì¼€ì¼
         fig.update_yaxes(side="right", gridcolor="#333", autorange=True, fixedrange=False, row=1, col=1)
 
         fig.update_layout(
-            height=chart_h,
             template="plotly_dark",
             xaxis_rangeslider_visible=False,
             margin=dict(l=5, r=45, t=5, b=5),
             showlegend=False,
             dragmode='pan',
             hovermode='x unified',
-            xaxis=dict(range=[-0.5, zoom_val - 0.5]) # ìº”ë“¤ ì—†ëŠ” ì˜ì—­ ì´íƒˆ ë°©ì§€
+            xaxis=dict(range=[-0.5, zoom_val - 0.5])
         )
 
-        # ìë™ ë§ì¶¤ ë²„íŠ¼(Fit)
         fig.update_layout(updatemenus=[dict(
             type="buttons", showactive=False, x=0.01, y=0.99,
             buttons=[dict(label="FIT", method="relayout", args=[{"yaxis.autorange": True}])]
@@ -184,4 +171,4 @@ if check_password():
             'scrollZoom': True, 'displayModeBar': False, 'responsive': True, 'doubleClick': 'reset'
         })
     else:
-        st.info("ğŸ“‚ ì‚¬ì´ë“œë°”(>)ì—ì„œ íŒŒì¼ì„ ì—…ë¡œë“œí•˜ì„¸ìš”.")
+        st.info("?? »çÀÌµå¹Ù(>)¿¡¼­ ÆÄÀÏÀ» ¾÷·ÎµåÇÏ¼¼¿ä.")
